@@ -1,0 +1,42 @@
+import Image from "next/image";
+import PointsIcon from "@/public/PointsIcon.png";
+import LessonsIcon from "@/public/LessonsIcon.png";
+import StreakIcon from "@/public/StreakIcon.png";
+import SubjectsIcon from "@/public/SubjectsIcon.png";
+
+const stats = [
+  { icon: PointsIcon, label: "Points", key: "xp_points" },
+  { icon: LessonsIcon, label: "Lessons", key: "lessons" },
+  { icon: StreakIcon, label: "Streak", key: "streak" },
+  { icon: SubjectsIcon, label: "Subjects", key: "subjects" },
+];
+
+export default function StatsCards({ profile, lessonsCount, subjectsCount }) {
+  const data = {
+    xp_points: profile?.xp_points || 0,
+    lessons: lessonsCount || 0,
+    streak: 0,
+    subjects: 0,
+    subjects: subjectsCount || 0,
+    streak: profile?.streak || 0,
+  };
+
+  return (
+    <div className="flex gap-4 mb-6">
+      {stats.map((stat, i) => (
+        <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 flex-1 shadow-[0_10px_20px_rgba(0,0,0,0.15)]">
+          <div className="flex items-center justify-between mb-3">
+            <Image src={stat.icon} alt={stat.label} className="w-8" />
+            <button className="text-gray-600 hover:text-gray-400">⋯</button>
+          </div>
+          <div className="text-2xl font-medium">
+            {data[stat.key]}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            {stat.label}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
