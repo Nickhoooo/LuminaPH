@@ -1,6 +1,6 @@
 export default function Banner({ profile }) {
   return (
-    <div className="bg-orange-400 rounded-2xl p-8 text-white mb-6 shadow-[0_10px_20px_rgba(0,0,0,0.15)]">
+    <div className="bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl p-8 text-white mb-6">
       <p className="text-xs font-medium opacity-75 mb-2 uppercase tracking-widest">
         Personalized for you
       </p>
@@ -12,7 +12,7 @@ export default function Banner({ profile }) {
         <span className="font-medium">{profile?.course}</span>{" "}
         {profile?.year_level} profile
       </p>
-      <button className="bg-white text-orange-400 text-sm px-6 py-2 rounded-xl font-medium hover:bg-orange-50">
+      <button className="bg-white text-emerald-600 text-sm px-6 py-2 rounded-xl font-medium hover:bg-emerald-50 cursor-pointer transition-all">
         Start Learning →
       </button>
     </div>

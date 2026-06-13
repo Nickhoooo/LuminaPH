@@ -52,7 +52,9 @@ export default function SignUp() {
           course: formData.course,
           learning_style: formData.learning_style,
         });
-
+        
+        console.log("Profile insert error:", profileError);
+        
       if (profileError) throw profileError;
 
       // Step 3 — Redirect to dashboard

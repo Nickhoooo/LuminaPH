@@ -2,17 +2,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import Sidebar from "@/Components/dashboard/Sidebar";
-import Navbar from "@/Components/dashboard/Navbar";
-import Banner from "@/Components/dashboard/Banner";
-import StatsCards from "@/Components/dashboard/StatsCards";
-import ContinueLearning from "@/Components/dashboard/ContinueLearning";
-import RecentActivity from "@/Components/dashboard/RecentActivity";
-import RightPanel from "@/Components/dashboard/RightPanel";
+import { useDashboard } from "@/lib/DashboardContext";
+import DashboardSection from "@/Components/dashboard/sections/DashboardSection";
 
 export default function Dashboard() {
   const router = useRouter();
-  const [profile, setProfile] = useState(null);
+  const { profile } = useDashboard();
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generatingSubjects, setGeneratingSubjects] = useState(false);
@@ -20,9 +15,7 @@ export default function Dashboard() {
   const [subjectsCount, setSubjectsCount] = useState(0);
 
   useEffect(() => {
-    let subscription = null;
-
-    const getProfile = async () => {
+    const getData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -30,13 +23,11 @@ export default function Dashboard() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      setProfile(profile);
+      // Profile is already in context — don't fetch again!
+      if (!profile) {
+        setLoading(false);
+        return;
+      }
 
       const { data: existingSubjects } = await supabase
         .from("subjects")
@@ -44,39 +35,34 @@ export default function Dashboard() {
         .eq("user_id", user.id);
 
       if (existingSubjects && existingSubjects.length > 0) {
-  
-      // Kunin yung progress ng lahat ng lessons
-      const { data: progressData } = await supabase
-        .from("progress")
-        .select("*, lessons(subject_id)")
-        .eq("user_id", user.id)
-        .eq("is_completed", true);
+        const { data: progressData } = await supabase
+          .from("progress")
+          .select("*, lessons(subject_id)")
+          .eq("user_id", user.id)
+          .eq("is_completed", true);
 
-      // Kunin yung lesson counts per subject
-      const { data: allLessons } = await supabase
-        .from("lessons")
-        .select("id, subject_id");
+        const { data: allLessons } = await supabase
+          .from("lessons")
+          .select("id, subject_id");
 
-      // I-compute yung progress per subject
-      const subjectsWithProgress = existingSubjects.map((subject) => {
-        const subjectLessons = allLessons?.filter(
-          (l) => l.subject_id === subject.id
-        );
-        const completedLessons = progressData?.filter(
-          (p) => p.lessons?.subject_id === subject.id
-        );
+        const subjectsWithProgress = existingSubjects.map((subject) => {
+          const subjectLessons = allLessons?.filter(
+            (l) => l.subject_id === subject.id
+          );
+          const completedLessons = progressData?.filter(
+            (p) => p.lessons?.subject_id === subject.id
+          );
 
-        const total = subjectLessons?.length || 0;
-        const completed = completedLessons?.length || 0;
-        const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+          const total = subjectLessons?.length || 0;
+          const completed = completedLessons?.length || 0;
+          const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-        return { ...subject, progress };
-      });
+          return { ...subject, progress };
+        });
 
-      setSubjects(subjectsWithProgress);
-      setSubjectsCount(existingSubjects.length);
-
-    } else {
+        setSubjects(subjectsWithProgress);
+        setSubjectsCount(existingSubjects.length);
+      } else {
         setGeneratingSubjects(true);
         await generateSubjects(profile, user.id);
         setGeneratingSubjects(false);
@@ -90,35 +76,10 @@ export default function Dashboard() {
 
       setLessonsCount(completedLessons?.length || 0);
       setLoading(false);
-
-      // Setup real-time AFTER all fetches
-      subscription = supabase
-        .channel(`profile-${user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "profiles",
-            filter: `id=eq.${user.id}`,
-          },
-          (payload) => {
-            setProfile(payload.new);
-          }
-        )
-        .subscribe((status) => {
-          console.log("Subscription status:", status);
-        });
     };
 
-    getProfile();
-
-    return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
-    };
-  }, []);
+    getData();
+  }, [profile]);
 
   const generateSubjects = async (profile, userId) => {
     try {
@@ -148,7 +109,7 @@ export default function Dashboard() {
         .select();
 
       setSubjects(savedSubjects);
-
+      setSubjectsCount(savedSubjects.length);
     } catch (error) {
       console.error("Error generating subjects:", error);
     }
@@ -156,42 +117,19 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#FFF5EB] flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <p className="text-sm text-gray-400">Loading...</p>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#FFF5EB] flex">
-
-      {/* Left Sidebar */}
-      <Sidebar />
-
-      {/* Center + Right */}
-      <div className="flex flex-1">
-
-        {/* Main Content */}
-        <div className="flex-1 px-8 py-6">
-          <Navbar profile={profile} />
-          <Banner profile={profile} />
-          <StatsCards 
-              profile={profile} 
-              lessonsCount={lessonsCount} 
-              subjectsCount={subjectsCount}
-          />
-          <ContinueLearning
-            subjects={subjects}
-            generating={generatingSubjects}
-          />
-          <RecentActivity activities={null} />
-        </div>
-
-        {/* Right Panel */}
-        <RightPanel profile={profile} />
-
-      </div>
-
-    </main>
+    <DashboardSection
+      profile={profile}
+      subjects={subjects}
+      lessonsCount={lessonsCount}
+      subjectsCount={subjectsCount}
+      generating={generatingSubjects}
+    />
   );
 }

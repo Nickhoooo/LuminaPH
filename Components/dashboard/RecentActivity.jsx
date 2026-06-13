@@ -3,7 +3,7 @@ export default function RecentActivity({ activities }) {
     <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-[0_10px_20px_rgba(0,0,0,0.15)]">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-medium">Recent Activities</h2>
-        <button className="text-xs text-orange-400 hover:text-orange-500">See All →</button>
+        <button className="text-xs text-emerald-500 hover:text-emerald-800">See All →</button>
       </div>
 
       {/* Empty State */}
