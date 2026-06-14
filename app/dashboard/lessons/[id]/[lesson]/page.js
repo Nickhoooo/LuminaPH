@@ -62,60 +62,66 @@ export default function LessonContent() {
   }, [id, lessonId, dashboardProfile]);
 
   const markAsDone = async () => {
-    if (completed || marking || !profile) return;
-    setMarking(true);
+  if (completed || marking || !profile) return;
+  setMarking(true);
 
-    try {
-      await supabase.from("progress").insert({
-        user_id: user.id,
-        lesson_id: lessonId,
-        is_completed: true,
-        completed_at: new Date().toISOString(),
-      });
+  try {
+    // 1. Insert progress
+    await supabase.from("progress").insert({
+      user_id: user.id,
+      lesson_id: lessonId,
+      is_completed: true,
+      completed_at: new Date().toISOString(),
+    });
 
-      const today = new Date().toISOString().split("T")[0];
-      const lastActive = profile.last_active;
+    // 2. Get today's date
+    const today = new Date().toISOString().split("T")[0];
+    const lastActive = profile.last_active?.split("T")[0]; // Handle both formats
 
-      let newStreak = profile.streak || 0;
+    // 3. Calculate streak
+    let newStreak = profile.streak || 1;
 
-      if (!lastActive) {
-        newStreak = 1;
+    if (lastActive && lastActive !== today) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+      if (lastActive === yesterdayStr) {
+        newStreak = (profile.streak || 0) + 1; // ✅ Increment
       } else {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-        if (lastActive === yesterdayStr) {
-          newStreak = newStreak + 1;
-        } else if (lastActive === today) {
-          newStreak = newStreak;
-        } else {
-          newStreak = 1;
-        }
+        newStreak = 1; // ✅ Reset if gap
       }
-
-      await supabase.from("profiles").update({
-        xp_points: profile.xp_points + 10,
-        streak: newStreak,
-        last_active: today,
-      }).eq("id", user.id);
-
-      setProfile({
-        ...profile,
-        xp_points: profile.xp_points + 10,
-        streak: newStreak,
-        last_active: today,
-      });
-
-      setCompleted(true);
-      setShowReward(true);
-      setTimeout(() => setShowReward(false), 3000);
-    } catch (error) {
-      console.error("Error marking as done:", error);
-    } finally {
-      setMarking(false);
     }
-  };
+    // If lastActive === today, keep same streak
+
+    // 4. Update database AND get fresh data back
+    const { data: updatedProfile, error } = await supabase
+      .from("profiles")
+      .update({
+        xp_points: (profile.xp_points || 0) + 10,
+        streak: newStreak,
+        last_active: today,
+      })
+      .eq("id", user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // 5. Use the actual database response
+    setProfile(updatedProfile);
+
+    setCompleted(true);
+    setShowReward(true);
+    console.log(`✅ Marked Done! XP: ${updatedProfile.xp_points}, Streak: ${updatedProfile.streak}`);
+    setTimeout(() => setShowReward(false), 3000);
+  } catch (error) {
+    console.error("Error marking as done:", error);
+    alert("Failed to save progress. Try again!");
+  } finally {
+    setMarking(false);
+  }
+};
 
   if (loading) {
     return <p className="text-sm text-gray-400">Loading...</p>;

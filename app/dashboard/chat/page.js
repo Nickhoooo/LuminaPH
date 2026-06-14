@@ -78,31 +78,49 @@ export default function GlobalChat() {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim() || sending) return;
-    setSending(true);
+  if (!input.trim() || sending) return;
 
-    try {
-      await supabase.from("messages").insert({
+  // ✅ OPTIMISTIC UPDATE - Show message immediately!
+  const newMessage = {
+    id: Date.now(),
+    sender_id: user.id,
+    content: input.trim(),
+    created_at: new Date().toISOString(),
+    sender: { name: profile?.name },
+  };
+
+  setMessages((prev) => [...prev, newMessage]);
+  setInput("");
+  setSending(true);
+
+  try {
+    // Save to database
+    const { data } = await supabase
+      .from("messages")
+      .insert({
         sender_id: user.id,
         receiver_id: null,
         content: input.trim(),
-      });
+      })
+      .select()
+      .single();
 
-      setInput("");
-
-      const { data: updatedMessages } = await supabase
-        .from("messages")
-        .select("*, sender:profiles!messages_sender_id_fkey(name)")
-        .is("receiver_id", null)
-        .order("created_at", { ascending: true });
-
-      setMessages(updatedMessages || []);
-    } catch (error) {
-      console.error("Error sending message:", error);
-    } finally {
-      setSending(false);
-    }
-  };
+    // Replace temporary message with real database message
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === newMessage.id 
+          ? { ...data, sender: { name: profile?.name } } 
+          : msg
+      )
+    );
+  } catch (error) {
+    console.error("Error sending message:", error);
+    // Remove message if it failed
+    setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id));
+  } finally {
+    setSending(false);
+  }
+};
 
   if (loading) {
     return (
@@ -116,7 +134,7 @@ export default function GlobalChat() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
+    <div className="flex flex-col h-[620px] bg-gradient-to-br from-emerald-50 to-teal-50 mt-[30px]">
       
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 lg:px-8 py-4 lg:py-6 shadow-sm">

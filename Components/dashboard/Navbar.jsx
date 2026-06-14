@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Bell, MessageSquare, Menu, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import notification from "@/public/notification.png";
+import NotificationWidget from "./NotificationWidget";
 
 // Icons
 import dashboard from "@/public/dashboard (1).png";
@@ -60,8 +61,13 @@ export default function Navbar({ profile }) {
         <div className="flex items-center gap-3">
           {/* Notification */}
           <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.15)]">
-            <Image src={notification} className="w-5" alt="NotifIcon" />
-          </div>
+            <NotificationWidget userId={profile?.id} />
+            
+            {/* Existing notification code */}
+        
+            
+            {/* Rest of navbar */}
+        </div>
 
           {/* Message */}
           <Link href="/dashboard/chat">
