@@ -17,21 +17,21 @@ function DashboardLayoutContent({ children }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar with Mobile Menu */}
-        <Navbar profile={profile} />
+        {/* Navbar — fixed height so content knows where to start */}
+        <div className="flex-shrink-0">
+          <Navbar profile={profile} />
+        </div>
 
-        {/* Content + RightPanel */}
-        <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <main className="flex-1 overflow-y-auto">
-              <div className="max-w-7xl mx-auto px-4 lg:px-8 py-[50px]">
-                {children}
-              </div>
-            </main>
-          </div>
+        {/* Content + RightPanel — fills remaining height */}
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          <main className="flex-1 overflow-y-auto">
+            <div className="max-w-7xl mx-auto px-4 lg:px-8 py-[50px]">
+              {children}
+            </div>
+          </main>
 
           {/* Right Panel - Hidden on mobile */}
-          <div className="hidden xl:block">
+          <div className="hidden xl:block overflow-y-auto">
             {!loading && <RightPanel profile={profile} subjects={subjects} />}
           </div>
         </div>
