@@ -48,7 +48,7 @@ export default function Footer() {
             </p>
             <div className="flex gap-2 flex-wrap">
               {socialLinks.map((s) => (
-                
+                <a
                   key={s.text}
                   href={s.href}
                   target="_blank"
